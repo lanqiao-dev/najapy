@@ -10,13 +10,13 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
 lib64/
 parts/
 sdist/
+dist/
 var/
 wheels/
 *.egg-info/
@@ -104,6 +104,7 @@ venv.bak/
 test/
 
 # Other files and folders
+.DS_Store
 .idea/
 .vscode/
 .settings/
