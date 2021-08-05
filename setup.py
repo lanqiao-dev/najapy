@@ -1,15 +1,15 @@
 from distutils.core import setup
 from setuptools import find_packages
-from pynaja import __version__
+from najapy import __version__
 
-with open("README.md", "r") as f:
+with open("README.md", "r", encoding='utf-8') as f:
     long_description = f.read()
 
-setup(name=r'pynaja',
+setup(name=r'najapy',
       version=__version__,
       license=r'Apache License Version 2.0',
-      author=r'xiami',
-      author_email=r'gaohlsilence@163.com',
+      author=r'lanqiao',
+      author_email=r'',
       description=r'Async Suite For Python',
       long_description=long_description,
       long_description_content_type=r'text/markdown',
