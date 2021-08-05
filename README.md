@@ -10,7 +10,7 @@ git clone https://github.com/lanqiao-dev/pynaja.git
 ## 项目层级结构
 
 ```tex
-├── pynaja                                      项目目录
+├── najapy                                      项目目录
 │    ├── cache                                  缓存层
 │    │    ├── base                           	缓存工具集
 │    │    └── redis                          	redis工具集
