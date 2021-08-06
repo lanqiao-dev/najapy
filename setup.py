@@ -39,6 +39,8 @@ setup(name=r'najapy',
           r'PyMySQL==0.9.3',
           r'pymongo==3.12.0',
           r'uvicorn==0.14.0',
+          r'xmltodict==0.12.0',
+          r'psutil==5.8.0',
       ],
       classifiers=[
           r'Programming Language :: Python :: 3.8',
