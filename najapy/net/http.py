@@ -77,7 +77,7 @@ class _HTTPClient:
     """HTTP客户端基类
     """
 
-    def __init__(self, retry_count=5, timeout=None, **kwargs):
+    def __init__(self, retry_count=5, timeout=None, raise_for_status=True, **kwargs):
 
         global DEFAULT_TIMEOUT
 
@@ -87,7 +87,7 @@ class _HTTPClient:
 
         self._session_config = kwargs
         self._session_config[r'timeout'] = timeout if timeout is not None else DEFAULT_TIMEOUT
-        self._session_config.setdefault(r'raise_for_status', True)
+        self._session_config.setdefault(r'raise_for_status', raise_for_status)
 
     async def _handle_response(self, response):
 
@@ -270,10 +270,10 @@ class HTTPClientPool(HTTPClient):
 
     def __init__(self,
                  retry_count=5, use_dns_cache=True, ttl_dns_cache=10,
-                 limit=100, limit_per_host=0, timeout=None,
+                 limit=100, limit_per_host=0, timeout=None, raise_for_status=True,
                  **kwargs
                  ):
-        super().__init__(retry_count, timeout, **kwargs)
+        super().__init__(retry_count, timeout, raise_for_status, **kwargs)
 
         self._tcp_connector = aiohttp.TCPConnector(
             use_dns_cache=use_dns_cache,
