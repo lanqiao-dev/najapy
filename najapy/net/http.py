@@ -11,7 +11,7 @@ DOWNLOAD_TIMEOUT = aiohttp.client.ClientTimeout(total=600, connect=10, sock_read
 
 CACERT_FILE = os.path.join(
     os.path.split(os.path.abspath(__file__))[0],
-    r'./cacert.pem'
+    r'../static/cacert.pem'
 )
 
 
