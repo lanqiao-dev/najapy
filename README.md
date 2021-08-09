@@ -4,7 +4,7 @@
 
 
 ## 下载
-git clone https://github.com/lanqiao-dev/pynaja.git
+git clone https://github.com/lanqiao-dev/najapy.git
 
 
 ## 项目层级结构
