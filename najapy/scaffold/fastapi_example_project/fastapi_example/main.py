@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from najapy.frame.fastapi.base import create_fastapi
 
-from najapy.scaffold.fastapi_example_project.activate import ActivateInit
-from najapy.scaffold.fastapi_example_project.conf import ConfigDynamic
-from najapy.scaffold.fastapi_example_project.err_handler import exception_handler
-from najapy.scaffold.fastapi_example_project.router import api_router
+from najapy.scaffold.fastapi_example_project.fastapi_example.activate import ActivateInit
+from najapy.scaffold.fastapi_example_project.fastapi_example.conf import ConfigDynamic
+from najapy.scaffold.fastapi_example_project.fastapi_example.err_handler import exception_handler
+from najapy.scaffold.fastapi_example_project.fastapi_example.router import api_router
 
 
 def get_application() -> FastAPI:
@@ -28,7 +28,7 @@ def get_application() -> FastAPI:
             allow_headers=["*"],
         )
 
-    fastapi.include_router(api_router, prefix='/api/v1')
+    fastapi.include_router(api_router, prefix='/api/v1/fastapi_example')
 
     exception_handler(fastapi)
 

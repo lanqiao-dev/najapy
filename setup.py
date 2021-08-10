@@ -15,7 +15,7 @@ setup(name=r'najapy',
       long_description_content_type=r'text/markdown',
       url=r'https://github.com/lanqiao-dev/najapy.git',
       packages=find_packages(),
-      package_data={r'najapy': [r'static/*.*']},
+      package_data={r'najapy': [r'static/*.*', r'scaffold/fastapi_example_project/fastapi_example/conf/*.*']},
       python_requires=r'>= 3.8',
       platforms=[r"all"],
       install_requires=[

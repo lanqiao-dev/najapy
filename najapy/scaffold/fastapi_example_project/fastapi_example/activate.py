@@ -1,4 +1,4 @@
-from najapy.scaffold.fastapi_example_project.abc_base.service.base_service import DataSource
+from najapy.scaffold.fastapi_example_project.fastapi_example.abc_base.service.base_service import DataSource
 
 
 class ActivateInit:

@@ -1,3 +1,4 @@
+from najapy.database.mongo import MongoDelegate
 from najapy.cache.base import ShareFuture, FuncCache
 from najapy.cache.redis import RedisDelegate
 from najapy.common.async_base import MultiTasks, Utils
@@ -6,14 +7,23 @@ from najapy.common.metaclass import Singleton
 from najapy.common.process import HeartbeatChecker
 from najapy.database.mysql import MySQLDelegate
 
-from najapy.scaffold.fastapi_example_project.conf import ConfigStatic, ConfigDynamic
+from najapy.scaffold.fastapi_example_project.fastapi_example.conf import ConfigStatic, ConfigDynamic
 
 
-class DataSource(Singleton, RedisDelegate, MySQLDelegate):
+class DataSource(Singleton, RedisDelegate, MySQLDelegate, MongoDelegate):
 
     def __init__(self):
         MySQLDelegate.__init__(self)
         RedisDelegate.__init__(self)
+        MongoDelegate.__init__(
+            self,
+            host=ConfigStatic.MongoServer,
+            username=ConfigStatic.MongoUser,
+            password=ConfigStatic.MongoPasswd,
+            min_pool_size=ConfigStatic.MongoMinConn,
+            max_pool_size=ConfigStatic.MongoMaxConn,
+            max_idle_time=3600
+        )
 
         self._heartbeat = HeartbeatChecker()
 
@@ -58,6 +68,7 @@ class DataSource(Singleton, RedisDelegate, MySQLDelegate):
 
         await self.async_close_redis()
         await self.async_close_mysql()
+        await self.close_mongo_pool()
 
     @property
     def online(self):
@@ -73,6 +84,7 @@ class DataSource(Singleton, RedisDelegate, MySQLDelegate):
 
             tasks.append(self.cache_health())
             tasks.append(self.mysql_health())
+            tasks.append(self.mongo_health())
 
             await tasks
 
