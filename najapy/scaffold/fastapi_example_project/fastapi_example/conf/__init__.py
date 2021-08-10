@@ -32,6 +32,15 @@ class _Static(Configure):
         self.MySqlSlaveMaxConn = self._parser.getint(r'MySql', r'MySqlSlaveMaxConn')
 
         ##################################################
+        # Mongo数据库
+        self.MongoServer = self._parser.get_split_str('Mongo', 'MongoHost')
+        self.MongoName = self._parser.get('Mongo', 'MongoName')
+        self.MongoUser = self._parser.get('Mongo', 'MongoUser', fallback=None)
+        self.MongoPasswd = self._parser.get('Mongo', 'MongoPasswd', fallback=None)
+        self.MongoMinConn = self._parser.getint('Mongo', 'MongoMinConn')
+        self.MongoMaxConn = self._parser.getint('Mongo', 'MongoMaxConn')
+
+        ##################################################
         # 缓存
 
         self.RedisHost = self._parser.get_split_host(r'Redis', r'RedisHost')

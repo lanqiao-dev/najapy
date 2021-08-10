@@ -7,7 +7,7 @@ from starlette import status
 from najapy.common.async_base import Utils
 from najapy.frame.fastapi.base import Request
 
-from najapy.scaffold.fastapi_example_project.utils.response import RespCode, ErrorResponse
+from najapy.scaffold.fastapi_example_project.fastapi_example.utils.response import RespCode, ErrorResponse
 
 
 def exception_handler(fastapi: FastAPI):

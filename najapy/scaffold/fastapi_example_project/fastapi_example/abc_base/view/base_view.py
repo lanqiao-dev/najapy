@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from starlette import status
 
-from najapy.scaffold.fastapi_example_project.abc_base.service.base_service import DataSource
-from najapy.scaffold.fastapi_example_project.utils.response import Response, ErrorResponse, RespCode
+from najapy.scaffold.fastapi_example_project.fastapi_example.abc_base.service.base_service import DataSource
+from najapy.scaffold.fastapi_example_project.fastapi_example.utils.response import Response, ErrorResponse, RespCode
 
 home_router = APIRouter()
 
