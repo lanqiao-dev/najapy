@@ -2,7 +2,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from najapy.common.async_base import Utils
 
-
 MONGO_POLL_WATER_LEVEL_WARNING_LINE = 0x08
 
 
@@ -11,15 +10,13 @@ class MongoPool:
     """
 
     def __init__(
-            self, host, username=None, password=None,
+            self, address=None, host=None, username=None, password=None,
             *, name=None, min_pool_size=8, max_pool_size=32, max_idle_time=3600, wait_queue_timeout=10,
             compressors=r'zlib', zlib_compression_level=6,
-            **settings
-    ):
+            **settings):
 
         self._name = name if name is not None else Utils.uuid1()[:8]
 
-        settings[r'host'] = host
         settings[r'minPoolSize'] = min_pool_size
         settings[r'maxPoolSize'] = max_pool_size
         settings[r'maxIdleTimeMS'] = max_idle_time * 1000
@@ -27,17 +24,23 @@ class MongoPool:
         settings[r'compressors'] = compressors
         settings[r'zlibCompressionLevel'] = zlib_compression_level
 
-        if username and password:
+        if address:
+            self._pool = AsyncIOMotorClient(address, **settings)
+
+        else:
+            settings[r'host'] = host
             settings[r'username'] = username
             settings[r'password'] = password
 
-        self._pool = AsyncIOMotorClient(**settings)
+            self._pool = AsyncIOMotorClient(**settings)
 
         for server in self._servers.values():
             server.pool.remove_stale_sockets()
 
         Utils.log.info(
-            f"Mongo {host} ({self._name}) initialized: {self._pool.min_pool_size}/{self._pool.max_pool_size}"
+            f"Mongo {address=} {host=} ({self._name}) "
+            f"initialized: {self._pool.min_pool_size}/{self._pool.max_pool_size}"
+            f"{settings}"
         )
 
     @property
