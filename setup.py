@@ -42,7 +42,6 @@ setup(name=r'najapy',
           r'uvicorn==0.14.0',
           r'xmltodict==0.12.0',
           r'psutil==5.8.0',
-          r'phonenumbers==8.10.17',
       ],
       classifiers=[
           r'Programming Language :: Python :: 3.8',
