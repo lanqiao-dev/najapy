@@ -36,6 +36,7 @@ import jwt
 import pytz
 import loguru
 import ujson
+import phonenumbers
 from cachetools import TTLCache, cached
 
 from najapy.common.metaclass import Singleton
@@ -758,6 +759,30 @@ class _Utils(Singleton):
             data_list.append(data)
 
         return new_data
+
+    @staticmethod
+    def vaildate_phone(phone: str) -> phonenumbers.PhoneNumber:
+        """验证手机号格式"""
+        if not phone:
+            return
+
+        try:
+            pn = phonenumbers.parse(phone)
+        except phonenumbers.NumberParseException:
+            return
+
+        if phone[0] != "+":
+            return phone
+
+        if pn.country_code == 86 and len(str(pn.national_number)) != 11:
+            return
+
+        return pn
+
+    @staticmethod
+    def is_cn_phonenumber(number: phonenumbers.PhoneNumber):
+        """验证手机号是否为国内的"""
+        return number.country_code == 86
 
 
 @contextmanager
