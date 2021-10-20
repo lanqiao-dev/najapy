@@ -42,6 +42,9 @@ setup(name=r'najapy',
           r'uvicorn==0.14.0',
           r'xmltodict==0.12.0',
           r'psutil==5.8.0',
+          r'xlwt==1.3.0',
+          r'xlrd==2.0.1',
+          r'xmltodict==0.12.0'
       ],
       classifiers=[
           r'Programming Language :: Python :: 3.8',
