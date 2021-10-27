@@ -148,6 +148,10 @@ class _Utils(Singleton):
         return result.replace(hour=0, minute=0, second=0, microsecond=0) if origin else result
 
     @classmethod
+    def datetime_now(cls, zone='Asia/Shanghai'):
+        return datetime.now(pytz.timezone(zone))
+
+    @classmethod
     def timestamp(cls, msec=False):
 
         if msec:
