@@ -34,7 +34,7 @@ class ExcelRD():
     @property
     def field_dict(self):
         """
-        field_dict: 表头信息和代码的映射关系字典 {"姓名": "name", "考勤组": "section", "UserId": "user_id"}
+        field_dict: 表头信息和代码的映射关系字典 {"name": "姓名", "section": "考勤组", "user_id": "UserId"}
         """
         return self._field_dict
 
@@ -44,6 +44,21 @@ class ExcelRD():
         field_dict:  {"name": "姓名", "age": "年龄"}
         """
         self._field_dict = value
+
+    @property
+    def field_name_dict(self):
+        """
+        field_name_dict: {"姓名": "name", "年龄": "age"}
+        """
+        if not self._field_dict:
+            return None
+
+        res = {}
+
+        for key, value in self._field_dict.items():
+            res[value] = key
+
+        return res
 
     def _get_fields_col_relation_by_field_dict(self):
         """
@@ -134,7 +149,7 @@ class ExcelRD():
                 cell_data = self.sheet.cell_value(i, j)
 
                 # key值为field_dict中表头名称对应的值或者所在列号
-                data_key = str(self._field_dict.get(header_name, j))
+                data_key = str(self.field_name_dict.get(header_name, j))
                 sheet_dict[data_key] = {
                     "row_num": i,
                     "col_num": j,
