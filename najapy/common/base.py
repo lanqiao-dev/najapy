@@ -21,9 +21,10 @@ import uuid
 import warnings
 import weakref
 import zlib
+from collections import OrderedDict
 from contextlib import contextmanager, closing
 from datetime import datetime, timedelta
-from collections import Iterable, OrderedDict
+from collections.abc import Iterable
 from contextvars import ContextVar
 import urllib
 from typing import List

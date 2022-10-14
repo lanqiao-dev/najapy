@@ -44,7 +44,10 @@ setup(name=r'najapy',
           r'psutil==5.8.0',
           r'xlwt==1.3.0',
           r'xlrd==1.2.0',
-          r'xmltodict==0.12.0'
+          r'xmltodict==0.12.0',
+          r'websockets==10.3',
+          r'pyzmq==22.3.0',
+          r'pytest-asyncio==0.18.3',
       ],
       classifiers=[
           r'Programming Language :: Python :: 3.8',
