@@ -29,6 +29,8 @@ from contextvars import ContextVar
 import urllib
 from typing import List
 from zipfile import ZipFile, ZIP_DEFLATED
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_v1_5 as PKCS1_cipher
 
 import psutil
 import xmltodict
@@ -542,6 +544,41 @@ class _Utils(Singleton):
         val = cls.utf8(val)
 
         return hashlib.sha512(val).hexdigest()
+
+    @classmethod
+    def read_rsa_key(cls, key_file_name: str):
+        with open(key_file_name) as f:
+            data = f.read()
+            key = RSA.importKey(data)
+
+        return key
+
+    @classmethod
+    def rsa_encryption(cls, pub_key_file_name: str, msg: str, split_length=117):
+        msg: bytes = msg.encode()
+        pub_key = cls.read_rsa_key(pub_key_file_name)
+        cipher = PKCS1_cipher.new(pub_key)
+
+        res = []
+        for i in range(0, len(msg), split_length):
+            res.append(cipher.encrypt(msg[i: i + split_length]))
+
+        encrypt_text: bytes = b"".join(res)
+        encrypt_text = cls.b64_encode(encrypt_text, standard=True)
+        return encrypt_text
+
+    @classmethod
+    def rsa_decryption(cls, pri_key_file_name: str, msg: str, split_length=128):
+        msg = cls.b64_decode(msg, standard=True, for_bytes=True)
+        private_key = cls.read_rsa_key(pri_key_file_name)
+        cipher = PKCS1_cipher.new(private_key)
+
+        res = []
+        for i in range(0, len(msg), split_length):
+            res.append(cipher.decrypt(msg[i: i+split_length], 0))
+
+        back_text = b"".join(res)
+        return back_text.decode()
 
     @classmethod
     def ordered_dict(cls, val=None):

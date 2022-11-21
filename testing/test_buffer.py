@@ -15,10 +15,10 @@ class TestBuffer:
             _handle_data, 100
         )
 
-        async for i in AsyncCirculatorForSecond(max_times=5):
+        async for i in AsyncCirculatorForSecond(max_times=2):
             buffer.append(i)
 
-        assert buffer.size() == 5
+        assert buffer.size() == 2
 
     async def test_queue_buffer_2(self):
         async def _handle_data(data):
@@ -28,7 +28,7 @@ class TestBuffer:
             _handle_data, 1
         )
 
-        async for i in AsyncCirculatorForSecond(max_times=5):
+        async for i in AsyncCirculatorForSecond(max_times=2):
             buffer.append(i)
 
         assert buffer.size() == 0

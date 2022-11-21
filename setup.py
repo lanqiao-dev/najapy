@@ -48,6 +48,7 @@ setup(name=r'najapy',
           r'websockets==10.3',
           r'pyzmq==22.3.0',
           r'pytest-asyncio==0.18.3',
+          r'pycryptodome==3.11.0',
       ],
       classifiers=[
           r'Programming Language :: Python :: 3.8',
