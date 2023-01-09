@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional, List
 
 from cachetools import TTLCache
 
@@ -13,23 +14,18 @@ class StackCache:
     """
 
     def __init__(self, maxsize=0xff, ttl=60):
-
         self._cache = TTLCache(maxsize, ttl)
 
     def has(self, key):
-
         return key in self._cache
 
     def get(self, key, default=None):
-
         return self._cache.get(key, default)
 
     def set(self, key, val):
-
         self._cache[key] = val
 
     def incr(self, key, val=1):
-
         res = self.get(key, 0) + val
 
         self.set(key, res)
@@ -37,7 +33,6 @@ class StackCache:
         return res
 
     def decr(self, key, val=1):
-
         res = self.get(key, 0) - val
 
         self.set(key, res)
@@ -45,15 +40,12 @@ class StackCache:
         return res
 
     def delete(self, key):
-
         del self._cache[key]
 
     def size(self):
-
         return len(self._cache)
 
     def clear(self):
-
         return self._cache.clear()
 
 
@@ -61,20 +53,29 @@ class FuncCache:
     """函数缓存
 
     使用堆栈缓存实现的函数缓存，在有效期内函数签名一致就会命中缓存
+    可从关键字参数中排除指定参数参与缓存
 
     """
 
-    def __init__(self, maxsize=0xff, ttl=10):
+    def __init__(self, maxsize=0xff, ttl=10, excludes: Optional[List[str]] = None):
 
         self._cache = StackCache(maxsize, ttl)
+        self._excludes = excludes or []
+
+    def _get_func_sign(self, func, *args, **kwargs):
+        sign_kwargs = Utils.deepcopy(kwargs)
+
+        for _param in list(sign_kwargs.keys()):
+            if _param in self._excludes:
+                sign_kwargs.pop(_param)
+
+        return Utils.params_sign(func, *args, **sign_kwargs)
 
     def __call__(self, func):
 
         @Utils.func_wraps(func)
         async def _wrapper(*args, **kwargs):
-
-            func_sign = Utils.params_sign(func, *args, **kwargs)
-
+            func_sign = self._get_func_sign(func, *args, **kwargs)
             result = self._cache.get(func_sign)
 
             if result is None:
