@@ -53,23 +53,30 @@ class FuncCache:
     """函数缓存
 
     使用堆栈缓存实现的函数缓存，在有效期内函数签名一致就会命中缓存
-    可从关键字参数中排除指定参数参与缓存
-
+    includes: 可从关键字参数中指定某些参数作为缓存key值
+    excludes: 可从关键字参数中指定某些参数不作为缓存key值
     """
 
-    def __init__(self, maxsize=0xff, ttl=10, excludes: Optional[List[str]] = None):
+    def __init__(self, maxsize=0xff, ttl=10,
+                 includes: Optional[List[str]] = None,
+                 excludes: Optional[List[str]] = None
+                 ):
 
         self._cache = StackCache(maxsize, ttl)
+        self._includes = includes or []
         self._excludes = excludes or []
 
     def _get_func_sign(self, func, *args, **kwargs):
-        sign_kwargs = Utils.deepcopy(kwargs)
+        if not self._includes and not self._excludes:
+            return Utils.params_sign(func, *args, **kwargs)
 
-        for _param in list(sign_kwargs.keys()):
-            if _param in self._excludes:
-                sign_kwargs.pop(_param)
+        if self._includes:
+            sign_kwargs = {key: val for key, val in kwargs.items() if key in self._includes}
+            return Utils.params_sign(func, **sign_kwargs)
 
-        return Utils.params_sign(func, *args, **sign_kwargs)
+        if self._excludes:
+            sign_kwargs = {key: val for key, val in kwargs.items() if key not in self._excludes}
+            return Utils.params_sign(func, *args, **sign_kwargs)
 
     def __call__(self, func):
 
