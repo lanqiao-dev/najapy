@@ -45,7 +45,11 @@ class BaseEnum(Singleton):
 
     @classmethod
     def __modify_schema__(cls, field_schema):
-        field_schema.update(type="integer", description=f"{cls.to_dict()}")
+        desc = f"{cls.to_dict()}"
+        if _doc := cls.__doc__:
+            desc = f"{_doc}: {desc}"
+
+        field_schema.update(type="integer", description=desc)
 
     @classmethod
     def to_list(cls):
