@@ -1,3 +1,7 @@
+from typing import Any
+
+from pydantic.fields import ModelField
+
 from najapy.common.metaclass import Singleton
 
 
@@ -22,6 +26,26 @@ class BaseEnum(Singleton):
     _attr_dict = None
     _attr_dict_enum = None
     _attr_weight_dict = None
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: Any, field: ModelField) -> Any:
+        try:
+            v = int(v)
+        except ValueError:
+            raise ValueError(f"{v} of {field.name} is error.")
+
+        if v not in cls.to_list():
+            raise ValueError(f"{v} of {field.name} is error.")
+
+        return v
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema.update(type="integer", description=f"{cls.to_dict()}")
 
     @classmethod
     def to_list(cls):
