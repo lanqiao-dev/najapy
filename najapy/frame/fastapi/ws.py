@@ -30,9 +30,15 @@ class WSConnectionManagerWithBuffer(WSConnectionManager):
     def __init__(self, buffer_size_limit=0xffff, buffer_timeout=1):
         super().__init__()
 
-        self._buffer = QueueBuffer(self._handle_data, buffer_size_limit, buffer_timeout)
+        self._buffer = QueueBuffer(
+            self._handle_data, buffer_size_limit, timeout=buffer_timeout
+        )
 
-    async def _handle_data(self, data: Union[Tuple[WebSocket, str], str]):
+    async def _handle_data(self, data: List[Union[Tuple[WebSocket, str], str]]):
+        if len(data) <= 0:
+            return
+
+        data = data[0]
         if isinstance(data, tuple):
             websocket, msg = data
             await websocket.send_text(msg)
@@ -43,3 +49,9 @@ class WSConnectionManagerWithBuffer(WSConnectionManager):
 
     def send_message(self, data: Union[Tuple[WebSocket, str], str]):
         self._buffer.append(data)
+
+    def buffer_start(self):
+        self._buffer.start()
+
+    def buffer_stop(self):
+        self._buffer.stop()

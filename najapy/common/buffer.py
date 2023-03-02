@@ -32,12 +32,13 @@ class _BufferAbs:
 
 
 class DadaQueue(_BufferAbs):
-    def __init__(self, handler: Callable, task_limit=1):
+    def __init__(self, handler: Callable, task_limit=1, data_limit=1):
         super(DadaQueue, self).__init__()
 
         self._handler = handler
         self._tasks = set()
         self._task_limit = task_limit
+        self._data_limit = data_limit
 
     def _consume_buffer(self):
         while len(self._tasks) < self._task_limit:
@@ -48,8 +49,14 @@ class DadaQueue(_BufferAbs):
         result = False
 
         if len(self._buffer) > 0:
+            datas = self._buffer[0: self._data_limit]
+            for data in datas:
+                if len(self._buffer) <= 0:
+                    break
+                self._buffer.remove(data)
+
             task = Utils.create_task(
-                self._handler(self._buffer.pop(0))
+                self._handler(datas)
             )
 
             task.add_done_callback(self._task_done)
@@ -68,11 +75,18 @@ class DadaQueue(_BufferAbs):
 
 
 class QueueBuffer(_BufferAbs):
-    def __init__(self, handler: Callable, size_limit, timeout=1, task_limit=1):
+    def __init__(self, handler: Callable, size_limit, *, timeout=1, task_limit=1, data_limit=1):
+        """
+        handler: 处理数据的callable
+        size_limit: buffer最大尺寸
+        timeout: 超时时间，即每间隔timeout时间处理一次buffer中的数据
+        task_limit: 处理数据最大任务数
+        data_limit: 每个任务批量处理的最大数据量
+        """
         super().__init__()
 
         self._size_limit = size_limit
-        self._data_queue = DadaQueue(handler, task_limit)
+        self._data_queue = DadaQueue(handler, task_limit, data_limit=data_limit)
 
         self._interval_task = IntervalTask.create(timeout, self._do_consume_buffer)
 
@@ -84,7 +98,13 @@ class QueueBuffer(_BufferAbs):
         buffer = self._get_buffer()
 
         if buffer:
-            self._data_queue.append(buffer)
+            self._data_queue.extent(buffer)
 
     def data_queue_size(self):
         return self._data_queue.size()
+
+    def start(self):
+        self._interval_task.start()
+
+    def stop(self):
+        self._interval_task.stop()
