@@ -246,6 +246,10 @@ class CacheClient(Redis, AsyncContextManager):
         value = Utils.pickle_dumps(value)
         return await super().set(name, value, ex=ex, nx=nx, xx=xx)
 
+    @property
+    def pool(self):
+        return self._pool
+
 
 class ShareCache(AsyncContextManager):
     """共享缓存，使用with进行上下文管理

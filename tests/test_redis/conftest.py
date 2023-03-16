@@ -17,6 +17,8 @@ default_redis_url = "redis://localhost:6379/9?password=myredis"
 _DecoratedTest = TypeVar("_DecoratedTest", bound="Callable")
 _TestDecorator = Callable[[_DecoratedTest], _DecoratedTest]
 
+POOL_KEY_PREFIX = "test_redis"
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -120,7 +122,7 @@ async def create_redis(request):
         pool = await RedisDelegate().async_init_redis(
             **url_kwargs
         )
-        pool.key_prefix = "test_redis"
+        pool.key_prefix = POOL_KEY_PREFIX
         client = await RedisDelegate().get_cache_client(*args, **kwargs)
 
         async def teardown():
