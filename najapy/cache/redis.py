@@ -239,15 +239,12 @@ class CacheClient(Redis, AsyncContextManager):
         )
 
     async def get_obj(self, name):
-        name = self._pool.get_safe_key(name)
         result = await super().get(name)
-
         return Utils.pickle_loads(result) if result else result
 
-    async def set_obj(self, name, value, ex=3600, **kwargs):
-        name = self._pool.get_safe_key(name)
+    async def set_obj(self, name, value, ex=3600, nx=False, xx=False):
         value = Utils.pickle_dumps(value)
-        return await super().set(name, value, ex=ex, **kwargs)
+        return await super().set(name, value, ex=ex, nx=nx, xx=xx)
 
 
 class ShareCache(AsyncContextManager):

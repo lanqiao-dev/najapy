@@ -248,32 +248,32 @@ class TestRedisCommands:
         assert await r.get("b") is None
 
     @pytest.mark.redis_basic_comm
-    async def test_delitem(self, r: redis.Redis):
-        await r.set("a", "foo")
+    async def test_delitem(self, r: CacheClient):
+        await r.set_obj("a", "foo")
         await r.delete("a")
-        assert await r.get("a") is None
+        assert await r.get_obj("a") is None
 
     @skip_if_server_version_lt("4.0.0")
     @pytest.mark.redis_basic_comm
-    async def test_unlink(self, r: redis.Redis):
+    async def test_unlink(self, r: CacheClient):
         """unlink与delete的区别在于unlink非阻塞即先断开key值后续异步删除key值"""
         assert await r.unlink("a") == 0
-        await r.set("a", "foo")
+        await r.set_obj("a", "foo")
         assert await r.unlink("a") == 1
-        assert await r.get("a") is None
+        assert await r.get_obj("a") is None
 
     @skip_if_server_version_lt("4.0.0")
     @pytest.mark.redis_basic_comm
-    async def test_unlink_with_multiple_keys(self, r: redis.Redis):
-        await r.set("a", "foo")
-        await r.set("b", "bar")
+    async def test_unlink_with_multiple_keys(self, r: CacheClient):
+        await r.set_obj("a", "foo")
+        await r.set_obj("b", "bar")
         assert await r.unlink("a", "b") == 2
-        assert await r.get("a") is None
-        assert await r.get("b") is None
+        assert await r.get_obj("a") is None
+        assert await r.get_obj("b") is None
 
     @skip_if_server_version_lt("2.6.0")
     @pytest.mark.redis_basic_comm
-    async def test_dump_and_restore(self, r: redis.Redis):
+    async def test_dump_and_restore(self, r: CacheClient):
         await r.set("a", "foo")
         dumped = await r.dump("a")
         await r.delete("a")
@@ -292,23 +292,23 @@ class TestRedisCommands:
         assert await r.get("a") == b"bar"
 
     @pytest.mark.redis_basic_comm
-    async def test_exists(self, r: redis.Redis):
+    async def test_exists(self, r: CacheClient):
         assert await r.exists("a") == 0
-        await r.set("a", "foo")
-        await r.set("b", "bar")
+        await r.set_obj("a", "foo")
+        await r.set_obj("b", "bar")
         assert await r.exists("a") == 1
         assert await r.exists("a", "b") == 2
 
     @pytest.mark.redis_basic_comm
-    async def test_exists_contains(self, r: redis.Redis):
+    async def test_exists_contains(self, r: CacheClient):
         assert not await r.exists("a")
-        await r.set("a", "foo")
+        await r.set_obj("a", "foo")
         assert await r.exists("a")
 
     @pytest.mark.redis_basic_comm
-    async def test_expire(self, r: redis.Redis):
+    async def test_expire(self, r: CacheClient):
         assert not await r.expire("a", 10)
-        await r.set("a", "foo")
+        await r.set_obj("a", "foo")
         assert await r.expire("a", 10)
         assert 0 < await r.ttl("a") <= 10
         assert await r.persist("a")  # 移除key值的过期时间
@@ -412,51 +412,51 @@ class TestRedisCommands:
         assert await r.get("d") is None
 
     @pytest.mark.redis_basic_comm
-    async def test_rename(self, r: redis.Redis):
-        await r.set("a", "1")
+    async def test_rename(self, r: CacheClient):
+        await r.set_obj("a", "1")
         assert await r.rename("a", "b")
-        assert await r.get("a") is None
-        assert await r.get("b") == "1"
+        assert await r.get_obj("a") is None
+        assert await r.get_obj("b") == "1"
 
     @pytest.mark.redis_basic_comm
-    async def test_renamenx(self, r: redis.Redis):
+    async def test_renamenx(self, r: CacheClient):
         """Renamenx 命令用于在新的 key 不存在时修改 key 的名称 """
-        await r.set("a", "1")
-        await r.set("b", "2")
+        await r.set_obj("a", "1")
+        await r.set_obj("b", "2")
         assert not await r.renamenx("a", "b")
-        assert await r.get("a") == "1"
-        assert await r.get("b") == "2"
+        assert await r.get_obj("a") == "1"
+        assert await r.get_obj("b") == "2"
 
     @skip_if_server_version_lt("2.6.0")
     @pytest.mark.redis_basic_comm
-    async def test_set_nx(self, r: redis.Redis):
+    async def test_set_nx(self, r: CacheClient):
         """nx True 键值对不存在时才能设置成功"""
-        assert await r.set("a", "1", nx=True)
-        assert not await r.set("a", "2", nx=True)
-        assert await r.get("a") == "1"
+        assert await r.set_obj("a", "1", nx=True)
+        assert not await r.set_obj("a", "2", nx=True)
+        assert await r.get_obj("a") == "1"
 
     @skip_if_server_version_lt("2.6.0")
     @pytest.mark.redis_basic_comm
-    async def test_set_xx(self, r: redis.Redis):
+    async def test_set_xx(self, r: CacheClient):
         """xx True 键值对存在时才能设置成功"""
-        assert not await r.set("a", "1", xx=True)
-        assert await r.get("a") is None
-        await r.set("a", "bar")
-        assert await r.set("a", "2", xx=True)
-        assert await r.get("a") == "2"
+        assert not await r.set_obj("a", "1", xx=True)
+        assert await r.get_obj("a") is None
+        await r.set_obj("a", "bar")
+        assert await r.set_obj("a", "2", xx=True)
+        assert await r.get_obj("a") == "2"
 
     @skip_if_server_version_lt("2.6.0")
     @pytest.mark.redis_basic_comm
-    async def test_set_px(self, r: redis.Redis):
+    async def test_set_px(self, r: CacheClient):
         """px 毫秒"""
         assert await r.set("a", "1", px=10000)
-        assert await r.get("a") == "1"
+        assert await r.get("a") == b"1"
         assert 0 < await r.pttl("a") <= 10000
         assert 0 < await r.ttl("a") <= 10
 
     @skip_if_server_version_lt("2.6.0")
     @pytest.mark.redis_basic_comm
-    async def test_set_px_timedelta(self, r: redis.Redis):
+    async def test_set_px_timedelta(self, r: CacheClient):
         expire_at = datetime.timedelta(milliseconds=1000)
         assert await r.set("a", "1", px=expire_at)
         assert 0 < await r.pttl("a") <= 1000
@@ -464,39 +464,62 @@ class TestRedisCommands:
 
     @skip_if_server_version_lt("2.6.0")
     @pytest.mark.redis_basic_comm
-    async def test_set_ex(self, r: redis.Redis):
+    async def test_set_ex(self, r: CacheClient):
         """ex 秒"""
-        assert await r.set("a", "1", ex=10)
+        assert await r.set_obj("a", "1", ex=10)
         assert 0 < await r.ttl("a") <= 10
+
+    @pytest.mark.redis_basic_comm
+    async def test_set_ex(self, r: CacheClient):
+        """ex 秒"""
+        assert await r.set_obj("a", "1", ex=10)
+        assert 0 < await r.ttl("a") <= 10
+
+    @skip_if_server_version_lt(REDIS_6_VERSION)
+    @pytest.mark.redis_basic_comm
+    async def test_set_keepttl(self, r: CacheClient):
+        await r.set("a", "val")
+        assert await r.set("a", "1", xx=True, px=10000)
+        assert 0 < await r.ttl("a") <= 10
+        await r.set("a", "2", keepttl=True)
+        assert await r.get("a") == b"2"
+        assert 0 < await r.ttl("a") <= 10
+
+    @skip_if_server_version_lt(REDIS_6_VERSION)
+    @pytest.mark.redis_basic_comm
+    async def test_set_get_true(self, r: CacheClient):
+        assert await r.set("a", "val", get=True) is None
+        assert await r.set("a", "foo", get=True) == b'val'
+        assert await r.get("a") == b"foo"
 
     @skip_if_server_version_lt("2.6.0")
     @pytest.mark.redis_basic_comm
-    async def test_set_ex_timedelta(self, r: redis.Redis):
+    async def test_set_ex_timedelta(self, r: CacheClient):
         expire_at = datetime.timedelta(seconds=60)
-        assert await r.set("a", "1", ex=expire_at)
+        assert await r.set_obj("a", "1", ex=expire_at)
         assert 0 < await r.ttl("a") <= 60
 
     @pytest.mark.redis_basic_comm
     async def test_setex(self, r: redis.Redis):
         assert await r.setex("a", 60, "1")
-        assert await r.get("a") == "1"
+        assert await r.get("a") == b"1"
         assert 0 < await r.ttl("a") <= 60
 
     @pytest.mark.redis_basic_comm
     async def test_setnx(self, r: redis.Redis):
         """setx 即 set命令nx参数为 True 键值对不存在时才能设置成功"""
         assert await r.setnx("a", "1")
-        assert await r.get("a") == "1"
+        assert await r.get("a") == b"1"
         assert not await r.setnx("a", "2")
-        assert await r.get("a") == "1"
+        assert await r.get("a") == b"1"
 
     @pytest.mark.redis_basic_comm
     async def test_setrange(self, r: redis.Redis):
         assert await r.setrange("a", 5, "foo") == 8
-        assert await r.get("a") == "\0\0\0\0\0foo"
+        assert await r.get("a") == b"\0\0\0\0\0foo"
         await r.set("a", "abcdefghijh")
         assert await r.setrange("a", 6, "12345") == 11
-        assert await r.get("a") == "abcdef12345"
+        assert await r.get("a") == b"abcdef12345"
 
     @pytest.mark.redis_basic_comm
     async def test_ttl(self, r: redis.Redis):
@@ -514,26 +537,26 @@ class TestRedisCommands:
 
     @pytest.mark.redis_basic_comm
     async def test_type(self, r: redis.Redis):
-        assert await r.type("a") == "none"
+        assert await r.type("a") == b"none"
         await r.set("a", "1")
-        assert await r.type("a") == "string"
+        assert await r.type("a") == b"string"
         await r.delete("a")
         await r.lpush("a", "1")
-        assert await r.type("a") == "list"
+        assert await r.type("a") == b"list"
         await r.delete("a")
         await r.sadd("a", "1")
-        assert await r.type("a") == "set"
+        assert await r.type("a") == b"set"
         await r.delete("a")
         await r.zadd("a", {"1": 1})
-        assert await r.type("a") == "zset"
+        assert await r.type("a") == b"zset"
 
     @pytest.mark.redis_basic_comm
     async def test_linsert(self, r: redis.Redis):
         await r.rpush("a", "1", "2", "3")
         assert await r.linsert("a", "after", "2", "2.5") == 4
-        assert await r.lrange("a", 0, -1) == ["1", "2", "2.5", "3"]
+        assert await r.lrange("a", 0, -1) == [b"1", b"2", b"2.5", b"3"]
         assert await r.linsert("a", "before", "2", "1.5") == 5
-        assert await r.lrange("a", 0, -1) == ["1", "1.5", "2", "2.5", "3"]
+        assert await r.lrange("a", 0, -1) == [b"1", b"1.5", b"2", b"2.5", b"3"]
 
     @pytest.mark.redis_basic_comm
     async def test_llen(self, r: redis.Redis):
@@ -543,9 +566,9 @@ class TestRedisCommands:
     @pytest.mark.redis_basic_comm
     async def test_lpop(self, r: CacheClient):
         await r.rpush("a", "1", "2", "3")
-        assert await r.lpop("a") == "1"
-        assert await r.lpop("a") == "2"
-        assert await r.lpop("a") == "3"
+        assert await r.lpop("a") == b"1"
+        assert await r.lpop("a") == b"2"
+        assert await r.lpop("a") == b"3"
         assert await r.lpop("a") is None
 
     @pytest.mark.redis_basic_comm
@@ -553,7 +576,7 @@ class TestRedisCommands:
         assert await r.lpush("a", "1") == 1
         assert await r.lpush("a", "2") == 2
         assert await r.lpush("a", "3", "4") == 4
-        assert await r.lrange("a", 0, -1) == ["4", "3", "2", "1"]
+        assert await r.lrange("a", 0, -1) == [b"4", b"3", b"2", b"1"]
 
     @pytest.mark.redis_basic_comm
     async def test_lpushx(self, r: redis.Redis):
@@ -561,52 +584,52 @@ class TestRedisCommands:
         assert await r.lrange("a", 0, -1) == []
         await r.rpush("a", "1", "2", "3")
         assert await r.lpushx("a", "4") == 4
-        assert await r.lrange("a", 0, -1) == ["4", "1", "2", "3"]
+        assert await r.lrange("a", 0, -1) == [b"4", b"1", b"2", b"3"]
 
     @pytest.mark.redis_basic_comm
     async def test_lrange(self, r: redis.Redis):
         await r.rpush("a", "1", "2", "3", "4", "5")
-        assert await r.lrange("a", 0, 2) == ["1", "2", "3"]
-        assert await r.lrange("a", 2, 10) == ["3", "4", "5"]
-        assert await r.lrange("a", 0, -1) == ["1", "2", "3", "4", "5"]
+        assert await r.lrange("a", 0, 2) == [b"1", b"2", b"3"]
+        assert await r.lrange("a", 2, 10) == [b"3", b"4", b"5"]
+        assert await r.lrange("a", 0, -1) == [b"1", b"2", b"3", b"4", b"5"]
 
     @pytest.mark.redis_basic_comm
     async def test_rpop(self, r: redis.Redis):
         await r.rpush("a", "1", "2", "3")
-        assert await r.rpop("a") == "3"
-        assert await r.rpop("a") == "2"
-        assert await r.rpop("a") == "1"
+        assert await r.rpop("a") == b"3"
+        assert await r.rpop("a") == b"2"
+        assert await r.rpop("a") == b"1"
         assert await r.rpop("a") is None
 
     @pytest.mark.redis_basic_comm
     async def test_rpoplpush(self, r: redis.Redis):
         await r.rpush("a", "a1", "a2", "a3")
         await r.rpush("b", "b1", "b2", "b3")
-        assert await r.rpoplpush("a", "b") == "a3"
-        assert await r.lrange("a", 0, -1) == ["a1", "a2"]
-        assert await r.lrange("b", 0, -1) == ["a3", "b1", "b2", "b3"]
+        assert await r.rpoplpush("a", "b") == b"a3"
+        assert await r.lrange("a", 0, -1) == [b"a1", b"a2"]
+        assert await r.lrange("b", 0, -1) == [b"a3", b"b1", b"b2", b"b3"]
 
     @pytest.mark.redis_basic_comm
     async def test_rpush(self, r: redis.Redis):
         assert await r.rpush("a", "1") == 1
         assert await r.rpush("a", "2") == 2
         assert await r.rpush("a", "3", "4") == 4
-        assert await r.lrange("a", 0, -1) == ["1", "2", "3", "4"]
+        assert await r.lrange("a", 0, -1) == [b"1", b"2", b"3", b"4"]
 
     @pytest.mark.redis_basic_comm
     async def test_hget_and_hset(self, r: redis.Redis):
         await r.hset("a", mapping={"1": 1, "2": 2, "3": 3})
-        assert await r.hget("a", "1") == "1"
-        assert await r.hget("a", "2") == "2"
-        assert await r.hget("a", "3") == "3"
+        assert await r.hget("a", "1") == b"1"
+        assert await r.hget("a", "2") == b"2"
+        assert await r.hget("a", "3") == b"3"
 
         # field was updated, redis returns 0
         assert await r.hset("a", "2", 5) == 0
-        assert await r.hget("a", "2") == "5"
+        assert await r.hget("a", "2") == b"5"
 
         # field is new, redis returns 1
         assert await r.hset("a", "4", 4) == 1
-        assert await r.hget("a", "4") == "4"
+        assert await r.hget("a", "4") == b"4"
 
         # key inside of hash that doesn't exist returns null value
         assert await r.hget("a", "b") is None
@@ -618,14 +641,14 @@ class TestRedisCommands:
     @pytest.mark.redis_basic_comm
     async def test_hset_with_multi_key_values(self, r: redis.Redis):
         await r.hset("a", mapping={"1": 1, "2": 2, "3": 3})
-        assert await r.hget("a", "1") == "1"
-        assert await r.hget("a", "2") == "2"
-        assert await r.hget("a", "3") == "3"
+        assert await r.hget("a", "1") == b"1"
+        assert await r.hget("a", "2") == b"2"
+        assert await r.hget("a", "3") == b"3"
 
         await r.hset("b", "foo", "bar", mapping={"1": 1, "2": 2})
-        assert await r.hget("b", "1") == "1"
-        assert await r.hget("b", "2") == "2"
-        assert await r.hget("b", "foo") == "bar"
+        assert await r.hget("b", "1") == b"1"
+        assert await r.hget("b", "2") == b"2"
+        assert await r.hget("b", "foo") == b"bar"
 
     @pytest.mark.redis_basic_comm
     async def test_hset_without_data(self, r: redis.Redis):
@@ -648,7 +671,7 @@ class TestRedisCommands:
 
     @pytest.mark.redis_basic_comm
     async def test_hgetall(self, r: redis.Redis):
-        h = {"a1": "1", "a2": "2", "a3": "3"}
+        h = {b"a1": b"1", b"a2": b"2", b"a3": b"3"}
         await r.hset("a", mapping=h)
         assert await r.hgetall("a") == h
 
@@ -667,7 +690,7 @@ class TestRedisCommands:
 
     @pytest.mark.redis_basic_comm
     async def test_hkeys(self, r: redis.Redis):
-        h = {"a1": "1", "a2": "2", "a3": "3"}
+        h = {b"a1": b"1", b"a2": b"2", b"a3": b"3"}
         await r.hset("a", mapping=h)
         local_keys = list(h.keys())
         remote_keys = await r.hkeys("a")
