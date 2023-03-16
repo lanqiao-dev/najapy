@@ -228,9 +228,14 @@ class CacheClient(Redis, AsyncContextManager):
     async def release(self):
         await self._close_conn()
 
+    def get_safe_key(self, key):
+        return self._pool.get_safe_key(key)
+
     def allocate_lock(self, key, expire=60, *, sleep=0.1, blocking=True, blocking_timeout=None, thread_local=True):
+        """获取redis分布式锁
+        """
         return self.lock(
-            self._pool.get_safe_key(key),
+            self.get_safe_key(key),
             timeout=expire,
             sleep=sleep,
             blocking=blocking,
@@ -258,14 +263,20 @@ class ShareCache(AsyncContextManager):
 
     """
 
-    def __init__(self, redis_client, share_key, lock_timeout=60, lock_blocking_timeout=60):
+    def __init__(self, redis_client, share_key, lock_expire=60, lock_blocking_timeout=60):
+        """
+        redis_client： CacheClient对象
+        share_key: 共享缓存key值
+        lock_expire: 分布式锁的生命周期
+        lock_blocking_timeout: 获取分布式锁的最大阻塞时间
+        """
 
         self._redis_client = redis_client
         self._share_key = redis_client.get_safe_key(share_key)
 
         self._lock = self._redis_client.allocate_lock(
             redis_client.get_safe_key(f'share_cache:{share_key}'),
-            timeout=lock_timeout, blocking_timeout=lock_blocking_timeout
+            expire=lock_expire, blocking_timeout=lock_blocking_timeout
         )
 
         self.result = None
@@ -289,11 +300,16 @@ class ShareCache(AsyncContextManager):
 
         return await self._redis_client.set_obj(self._share_key, value, expire)
 
+    async def delete(self):
+        """非必要不需进行手动删除"""
+        await self._redis_client.delete(self._share_key)
+
     async def release(self):
 
         if self._lock:
             await self._lock.release()
 
+        await self._redis_client.close()
         self._redis_client = self._lock = None
 
 
@@ -329,3 +345,6 @@ class PeriodCounter:
 
     async def decr(self, val: int = 1) -> int:
         return await self._execute(self._get_key(), -val)
+
+    async def release(self):
+        await self._redis_client.close()

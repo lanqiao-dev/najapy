@@ -8,7 +8,7 @@ class TestLock:
     async def test_lock_client(self, r):
         key = "foo1"
         lock = r.allocate_lock(key)
-        lock_key = r.pool.get_safe_key(key)
+        lock_key = r.get_safe_key(key)
 
         assert await lock.acquire()
         assert await r.get(lock_key) == lock.local.token
@@ -19,7 +19,7 @@ class TestLock:
     async def test_timeout_client(self, r):
         key = "foo1"
         lock = r.allocate_lock(key)
-        lock_key = r.pool.get_safe_key(key)
+        lock_key = r.get_safe_key(key)
 
         assert await lock.acquire()
         assert 8 < (await r.ttl(lock_key)) <= 60
