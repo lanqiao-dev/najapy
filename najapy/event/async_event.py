@@ -27,23 +27,20 @@ class DistributedEvent(EventDispatcher):
             Utils.create_task(self._event_listener(channel))
 
     async def _event_listener(self, channel):
+        with catch_error():
+            cache = await self._redis_pool.get_client()
 
-        async for _ in AsyncCirculatorForSecond():
+            async with cache.get_pub_sub() as pub_sub:
+                await pub_sub.subscribe(channel)
+                Utils.log.info(f'event bus channel({channel}) receiver created.')
 
-            with catch_error():
-                cache = await self._redis_pool.get_client()
+                while True:
+                    message = await pub_sub.get_message(
+                        ignore_subscribe_messages=True, timeout=None
+                    )
 
-                async with cache.get_pub_sub() as pub_sub:
-                    await pub_sub.subscribe(channel)
-                    Utils.log.info(f'event bus channel({channel}) receiver created.')
-
-                    while True:
-                        message = await pub_sub.get_message(
-                            ignore_subscribe_messages=True, timeout=10
-                        )
-
-                        if message:
-                            await self._event_assigner(message)
+                    if message:
+                        await self._event_assigner(message)
 
     async def _event_assigner(self, message):
         data = Utils.msgpack_decode(message[r'data'])

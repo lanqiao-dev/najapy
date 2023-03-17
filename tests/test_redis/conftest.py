@@ -4,14 +4,14 @@ from urllib.parse import urlparse, parse_qs, unquote
 import pytest_asyncio
 from redis import Connection, ConnectionPool, Redis
 
-from najapy.cache.redis import RedisDelegate
+from najapy.cache.redis import RedisDelegate, PeriodCounter
 from packaging.version import Version
 
 import pytest
 import redis
 from redis.asyncio.connection import URL_QUERY_ARGUMENT_PARSERS
 
-from najapy.event.async_event import DistributedEvent
+from najapy.common.async_base import Utils
 
 REDIS_INFO = {}
 default_redis_url = "redis://localhost:6379/9?password=myredis"
@@ -211,6 +211,24 @@ async def create_pool_2(request):
 @pytest_asyncio.fixture()
 async def p2(create_pool_2):
     return await create_pool_2()
+
+
+@pytest_asyncio.fixture()
+async def create_period_counter(r, request):
+    """创建计数器"""
+    async def c_factor(
+            **kwargs
+    ):
+        c_time = kwargs.get("c_time")
+        c = PeriodCounter(r, Utils.uuid1(), c_time)
+        return c
+
+    yield c_factor
+
+
+@pytest_asyncio.fixture()
+async def c(create_period_counter):
+    return await create_period_counter()
 
 
 def skip_if_server_version_lt(min_version: str) -> _TestDecorator:
