@@ -11,6 +11,8 @@ import pytest
 import redis
 from redis.asyncio.connection import URL_QUERY_ARGUMENT_PARSERS
 
+from najapy.event.async_event import DistributedEvent
+
 REDIS_INFO = {}
 default_redis_url = "redis://localhost:6379/9?password=myredis"
 
@@ -179,6 +181,36 @@ async def create_pool(request):
 @pytest_asyncio.fixture()
 async def p(create_pool):
     return await create_pool()
+
+
+@pytest_asyncio.fixture()
+async def create_pool_2(request):
+    """创建连接池对象,该连接池为阻塞式
+    """
+
+    async def pool_factor(
+            url: str = request.config.getoption("--redis-url"),
+            *args,
+            **kwargs,
+    ):
+        url = urlparse(url)
+        url_kwargs = _get_redis_params(url)
+
+        url_kwargs.update(**kwargs)
+
+        pool = await RedisDelegate().async_init_redis(
+            **url_kwargs
+        )
+        pool.key_prefix = "test_pool"
+
+        return pool
+
+    yield pool_factor
+
+
+@pytest_asyncio.fixture()
+async def p2(create_pool_2):
+    return await create_pool_2()
 
 
 def skip_if_server_version_lt(min_version: str) -> _TestDecorator:

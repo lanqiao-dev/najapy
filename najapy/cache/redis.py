@@ -6,6 +6,74 @@ from redis.asyncio import ConnectionPool
 from najapy.common.async_base import AsyncContextManager, Utils
 from najapy.common.base import catch_error
 from najapy.common.metaclass import Singleton
+from najapy.event.async_event import DistributedEvent
+
+
+class RedisDelegate(Singleton):
+    """Redis功能组件
+    对外暴露redis连接池与客户端
+    """
+
+    def __init__(self):
+        self._redis_pool = None
+
+    @property
+    def redis_pool(self):
+
+        return self._redis_pool
+
+    def set_redis_key_prefix(self, value):
+        self._redis_pool.key_prefix = value
+
+    async def async_init_redis(
+            self,
+            host, port=6379, db=0, password=None,
+            min_connections: Optional[int] = 1,
+            max_connections: Optional[int] = 32,
+            timeout: Optional[int] = 20,
+            **kwargs
+    ):
+        """初始化redis连接池并对外提供连接池"""
+
+        self._redis_pool = await BlockingRedisPool(
+            host, port, db=db, password=password,
+            min_connections=min_connections,
+            max_connections=max_connections,
+            timeout=timeout,
+            **kwargs
+        ).initialize()
+
+        return self._redis_pool
+
+    async def async_close_redis(self):
+
+        if self._redis_pool is not None:
+            await self._redis_pool.disconnect()
+            self._redis_pool = None
+
+    async def cache_health(self):
+
+        result = False
+
+        async with await self.get_cache_client() as cache:
+            result = bool(await cache.time())
+
+        return result
+
+    async def get_cache_client(self, *args, **kwargs):
+        """提供redis客户端
+        """
+        client = None
+
+        if self._redis_pool is not None:
+            client = await self._redis_pool.get_client(*args, **kwargs)
+
+        return client
+
+    def event_dispatcher(self, channel_name, channel_count):
+        """提供redis广播总线
+        """
+        return DistributedEvent(self._redis_pool, channel_name, channel_count)
 
 
 class _PoolMixin(AsyncContextManager):
@@ -38,6 +106,9 @@ class _PoolMixin(AsyncContextManager):
     @key_prefix.setter
     def key_prefix(self, value):
         self._key_prefix = value
+
+    async def get_client(self, *args, **kwargs):
+        return await CacheClient(self, *args, **kwargs)
 
 
 class RedisPool(ConnectionPool, _PoolMixin):
@@ -85,7 +156,8 @@ class RedisPool(ConnectionPool, _PoolMixin):
         config = self.connection_kwargs
 
         Utils.log.info(
-            f"Redis Pool [{config[r'host']}:{config[r'port']}] ({self._name}) initialized: {self.max_connections}"
+            f"Redis Pool [{config[r'host']}:{config[r'port']}] ({self._name}) initialized: "
+            f"{self._min_connections}/{self.max_connections}"
         )
 
         return self
@@ -137,69 +209,10 @@ class BlockingRedisPool(BlockingConnectionPool, _PoolMixin):
 
         Utils.log.info(
             f"Redis Pool [{config[r'host']}:{config[r'port']}] ({self._name}) initialized: "
-            f"{len(self._connections)}/{self.max_connections}"
+            f"{self._min_connections}/{self.max_connections}"
         )
 
         return self
-
-
-class RedisDelegate(Singleton):
-    """Redis功能组件
-    """
-
-    def __init__(self):
-        self._redis_pool = None
-
-    @property
-    def redis_pool(self):
-
-        return self._redis_pool
-
-    def set_redis_key_prefix(self, value):
-        self._redis_pool.key_prefix = value
-
-    async def async_init_redis(
-            self,
-            host, port=6379, db=0, password=None,
-            min_connections: Optional[int] = 1,
-            max_connections: Optional[int] = 32,
-            timeout: Optional[int] = 20,
-
-            **kwargs
-    ):
-
-        self._redis_pool = await BlockingRedisPool(
-            host, port, db=db, password=password,
-            min_connections=min_connections,
-            max_connections=max_connections,
-            timeout=timeout,
-            **kwargs
-        ).initialize()
-
-        return self._redis_pool
-
-    async def async_close_redis(self):
-
-        if self._redis_pool is not None:
-            await self._redis_pool.disconnect()
-            self._redis_pool = None
-
-    async def cache_health(self):
-
-        result = False
-
-        async with await self.get_cache_client() as cache:
-            result = bool(await cache.time())
-
-        return result
-
-    async def get_cache_client(self, *args, **kwargs):
-        client = None
-
-        if self._redis_pool is not None:
-            client = await CacheClient(self._redis_pool, *args, **kwargs)
-
-        return client
 
 
 class CacheClient(Redis, AsyncContextManager):
@@ -254,6 +267,9 @@ class CacheClient(Redis, AsyncContextManager):
     @property
     def pool(self):
         return self._pool
+
+    def get_pub_sub(self, **kwargs):
+        return self.pubsub(**kwargs)
 
 
 class ShareCache(AsyncContextManager):

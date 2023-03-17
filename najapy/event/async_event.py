@@ -1,4 +1,5 @@
 from najapy.common.async_base import Utils, AsyncCirculatorForSecond, FutureWithTimeout, FuncWrapper
+from najapy.common.base import catch_error
 from najapy.event.event import EventDispatcher as _EventDispatcher
 
 
@@ -7,7 +8,6 @@ class EventDispatcher(_EventDispatcher):
     """
 
     def _gen_observer(self):
-
         return FuncWrapper()
 
 
@@ -30,33 +30,38 @@ class DistributedEvent(EventDispatcher):
 
         async for _ in AsyncCirculatorForSecond():
 
-            async with self._redis_pool.get_client() as cache:
+            with catch_error():
+                cache = await self._redis_pool.get_client()
 
-                receiver, = await cache.subscribe(channel)
+                async with cache.get_pub_sub() as pub_sub:
+                    await pub_sub.subscribe(channel)
+                    Utils.log.info(f'event bus channel({channel}) receiver created.')
 
-                Utils.log.info(f'event bus channel({channel}) receiver created')
+                    while True:
+                        message = await pub_sub.get_message(
+                            ignore_subscribe_messages=True, timeout=10
+                        )
 
-                async for message in receiver.iter():
-                    await self._event_assigner(message)
+                        if message:
+                            await self._event_assigner(message)
 
     async def _event_assigner(self, message):
+        data = Utils.msgpack_decode(message[r'data'])
 
-        message = Utils.pickle_loads(message)
-
-        _type = message.get(r'type', r'')
-        args = message.get(r'args', [])
-        kwargs = message.get(r'kwargs', {})
+        _type = data.get(r'type', r'')
+        args = data.get(r'args', [])
+        kwargs = data.get(r'kwargs', {})
 
         if _type in self._observers:
             self._observers[_type](*args, **kwargs)
 
     def _gen_observer(self):
-
         return FuncWrapper()
 
     async def dispatch(self, _type, *args, **kwargs):
 
         channel = self._channels[Utils.md5_u32(_type) % len(self._channels)]
+        Utils.log.info(f"dispatch channel({channel}):{_type}")
 
         message = {
             r'type': _type,
@@ -64,11 +69,10 @@ class DistributedEvent(EventDispatcher):
             r'kwargs': kwargs,
         }
 
-        async with self._redis_pool.get_client() as cache:
-            await cache.publish(channel, Utils.pickle_dumps(message))
+        async with await self._redis_pool.get_client() as cache:
+            return await cache.publish(channel, Utils.msgpack_encode(message))
 
     def gen_event_waiter(self, event_type, delay_time):
-
         return EventWaiter(self, event_type, delay_time)
 
 

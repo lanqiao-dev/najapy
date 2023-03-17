@@ -40,6 +40,7 @@ import pytz
 import loguru
 import ujson
 from cachetools import TTLCache, cached
+import msgpack
 
 from najapy.common.metaclass import Singleton
 
@@ -800,6 +801,14 @@ class _Utils(Singleton):
             data_list.append(data)
 
         return new_data
+
+    @classmethod
+    def msgpack_encode(cls, val, **kwargs):
+        return msgpack.dumps(val, **kwargs)
+
+    @classmethod
+    def msgpack_decode(cls, val, **kwargs):
+        return msgpack.loads(val, **kwargs)
 
 
 @contextmanager

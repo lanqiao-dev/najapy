@@ -49,6 +49,7 @@ setup(name=r'najapy',
           r'pyzmq==22.3.0',
           r'pytest-asyncio==0.18.3',
           r'pycryptodome==3.11.0',
+          r'msgpack==1.0.3',
       ],
       classifiers=[
           r'Programming Language :: Python :: 3.8',
