@@ -1,3 +1,4 @@
+import os
 from multiprocessing.shared_memory import SharedMemory
 
 from najapy.common.async_base import Utils
@@ -5,14 +6,12 @@ from najapy.common.base import ContextManager
 from najapy.common.struct import ByteArrayAbstract
 
 
-class SharedByteArray(ByteArrayAbstract, ContextManager):
+class SharedByteArray(SharedMemory, ByteArrayAbstract, ContextManager):
 
     def __init__(self, name=None, create=False, size=0):
 
+        SharedMemory.__init__(self, name, create, size)
         ByteArrayAbstract.__init__(self)
-
-        self._shared_memory = SharedMemory(name, create, size)
-        self._create_mode = create
 
     def _context_release(self):
 
@@ -20,18 +19,18 @@ class SharedByteArray(ByteArrayAbstract, ContextManager):
 
     def release(self):
 
-        self._shared_memory.close()
+        self.close()
 
-        if self._create_mode:
-            self._shared_memory.unlink()
+        if (self._flags & os.O_CREAT) != 0:
+            self.unlink()
 
     def read(self, size):
 
-        return self._shared_memory.buf[:size]
+        return self._buf[:size]
 
     def write(self, buffer):
 
-        self._shared_memory.buf[:len(buffer)] = buffer
+        self._buf[:len(buffer)] = buffer
 
 
 class HeartbeatChecker(ContextManager):
