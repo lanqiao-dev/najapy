@@ -53,7 +53,7 @@ class DistributedEvent(EventDispatcher):
                             await Utils.sleep(1)
 
     async def _event_assigner(self, message):
-        data = Utils.msgpack_decode(message[r'data'])
+        data = Utils.pickle_loads(message[r'data'])
 
         _type = data.get(r'type', r'')
         args = data.get(r'args', [])
@@ -77,7 +77,7 @@ class DistributedEvent(EventDispatcher):
         }
 
         async with await self._redis_pool.get_client() as cache:
-            return await cache.publish(channel, Utils.msgpack_encode(message))
+            return await cache.publish(channel, Utils.pickle_dumps(message))
 
     def gen_event_waiter(self, event_type, delay_time):
         return EventWaiter(self, event_type, delay_time)
