@@ -121,11 +121,12 @@ async def create_redis(request):
     ):
         url = urlparse(url)
         url_kwargs = _get_redis_params(url)
-        pool = await RedisDelegate().async_init_redis(
+        rd = RedisDelegate()
+        pool = await rd.async_init_redis(
             **url_kwargs
         )
         pool.key_prefix = POOL_KEY_PREFIX
-        client = await RedisDelegate().get_cache_client(*args, **kwargs)
+        client = await rd.get_cache_client(*args, **kwargs)
 
         async def teardown():
             await client.flushdb()
@@ -161,7 +162,9 @@ async def create_pool(request):
 
         url_kwargs.update(**kwargs)
 
-        pool = await RedisDelegate().async_init_redis(
+        rd = RedisDelegate()
+
+        pool = await rd.async_init_redis(
             **url_kwargs
         )
         pool.key_prefix = "test_pool"

@@ -5,11 +5,10 @@ from redis.asyncio import ConnectionPool
 
 from najapy.common.async_base import AsyncContextManager, Utils
 from najapy.common.base import catch_error
-from najapy.common.metaclass import Singleton
 from najapy.event.async_event import DistributedEvent
 
 
-class RedisDelegate(Singleton):
+class RedisDelegate:
     """Redis功能组件
     对外暴露redis连接池与客户端
     """

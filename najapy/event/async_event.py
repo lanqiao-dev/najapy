@@ -1,4 +1,6 @@
-from najapy.common.async_base import Utils, AsyncCirculatorForSecond, FutureWithTimeout, FuncWrapper
+import redis
+
+from najapy.common.async_base import Utils, FutureWithTimeout, FuncWrapper
 from najapy.common.base import catch_error
 from najapy.event.event import EventDispatcher as _EventDispatcher
 
@@ -35,12 +37,20 @@ class DistributedEvent(EventDispatcher):
                 Utils.log.info(f'event bus channel({channel}) receiver created.')
 
                 while True:
-                    message = await pub_sub.get_message(
-                        ignore_subscribe_messages=True, timeout=None
-                    )
+                    try:
+                        message = await pub_sub.get_message(
+                            ignore_subscribe_messages=True, timeout=None
+                        )
+                        if message:
+                            await self._event_assigner(message)
 
-                    if message:
-                        await self._event_assigner(message)
+                    except redis.ConnectionError:
+                        try:
+                            await pub_sub.connection.disconnect()
+                            await pub_sub.connection.connect()
+                        except redis.ConnectionError:
+                            Utils.log.warning('Could not reconnect, trying again in 1 second')
+                            await Utils.sleep(1)
 
     async def _event_assigner(self, message):
         data = Utils.msgpack_decode(message[r'data'])

@@ -86,9 +86,9 @@ async def test_multiple_connections(create_pool):
 async def test_multiple_connections_by_client(create_pool):
     """一个连接池中获取多个连接
     """
-    await create_pool()
-    c1 = await RedisDelegate().get_cache_client()
-    c2 = await RedisDelegate().get_cache_client()
+    pool = await create_pool()
+    c1 = await pool.get_client()
+    c2 = await pool.get_client()
 
     assert c1.connection != c2.connection
 
@@ -106,32 +106,31 @@ async def test_max_connections(create_pool):
 async def test_max_connections_by_client(create_pool):
     """测试最大连接数
     """
-    await create_pool(max_connections=3, timeout=1)
-
-    await RedisDelegate().get_cache_client()
-    await RedisDelegate().get_cache_client()
-    await RedisDelegate().get_cache_client()
+    pool = await create_pool(max_connections=3, timeout=1)
+    await pool.get_client()
+    await pool.get_client()
+    await pool.get_client()
 
     with pytest.raises(redis.ConnectionError):
-        await RedisDelegate().get_cache_client()
+        await pool.get_client()
 
 
 async def test_max_connections_by_client_2(create_pool):
     """测试最大连接数
     """
-    await create_pool(max_connections=32, timeout=1)
+    pool = await create_pool(max_connections=32, timeout=1)
 
-    async def get_client():
-        await RedisDelegate().get_cache_client()
+    async def get_client(pool):
+        await pool.get_client()
 
     tasks = []
     for i in range(32):
-        tasks.append(get_client())
+        tasks.append(get_client(pool))
 
     await asyncio.wait(tasks)
 
     with pytest.raises(redis.ConnectionError):
-        await RedisDelegate().get_cache_client()
+        await pool.get_client()
 
 
 async def test_connection_pool_blocks_until_timeout(create_pool):
@@ -152,12 +151,12 @@ async def test_connection_pool_blocks_until_timeout(create_pool):
 async def test_connection_pool_blocks_until_timeout_by_client(create_pool):
     """超过最大连接数且超出timeout后将报错
     """
-    await create_pool(max_connections=1, timeout=1)
-    c1 = await RedisDelegate().get_cache_client()
+    pool = await create_pool(max_connections=1, timeout=1)
+    c1 = await pool.get_client()
 
     start = Utils.loop_time()
     with pytest.raises(redis.ConnectionError):
-        await RedisDelegate().get_cache_client()
+        await pool.get_client()
     # we should have waited at least 0.1 seconds
     assert Utils.loop_time() - start >= 1
     await c1.close()
@@ -185,15 +184,15 @@ async def test_connection_pool_blocks_until_conn_available(create_pool):
 async def test_connection_pool_blocks_until_conn_available_client(create_pool):
     """超过最大连接数直到释放连接
     """
-    await create_pool(max_connections=1, timeout=1)
-    c1 = await RedisDelegate().get_cache_client()
+    pool = await create_pool(max_connections=1, timeout=1)
+    c1 = await pool.get_client()
 
     async def target():
         await Utils.sleep(0.1)
         await c1.close()
 
     start = Utils.loop_time()
-    await asyncio.gather(target(), RedisDelegate().get_cache_client())
+    await asyncio.gather(target(), pool.get_client())
     assert Utils.loop_time() - start >= 0.1
 
 
@@ -208,11 +207,11 @@ async def test_reuse_previously_released_connection(create_pool):
 async def test_reuse_previously_released_connection_by_client(create_pool):
     """释放连接后前后获取的连接为同一个
     """
-    await create_pool()
-    c1 = await RedisDelegate().get_cache_client()
+    pool = await create_pool()
+    c1 = await pool.get_client()
     c1_conn = c1.connection
     await c1.close()
-    c2 = await RedisDelegate().get_cache_client()
+    c2 = await pool.get_client()
 
     assert c1_conn == c2.connection
 
@@ -220,11 +219,11 @@ async def test_reuse_previously_released_connection_by_client(create_pool):
 async def test_reuse_previously_released_connection_by_client_with(create_pool):
     """释放连接后前后获取的连接为同一个 使用with模式
     """
-    await create_pool()
-    async with await RedisDelegate().get_cache_client() as cache:
+    pool = await create_pool()
+    async with await pool.get_client() as cache:
         c1_conn = cache.connection
 
-    async with await RedisDelegate().get_cache_client() as cache:
+    async with await pool.get_client() as cache:
         c2_conn = cache.connection
 
     assert c1_conn == c2_conn
@@ -248,23 +247,17 @@ class TestHealthCheck:
         assert self.interval >= diff > (self.interval - 1)
 
     async def test_health_check_runs(self, create_pool):
-        await create_pool(health_check_interval=self.interval)
-        c1 = await RedisDelegate().get_cache_client()
+        pool = await create_pool(health_check_interval=self.interval)
+        c1 = await pool.get_client()
 
         if c1.connection:
             c1.connection.next_health_check = Utils.loop_time() - 1
             await c1.connection.check_health()
             self.assert_interval_advanced(c1.connection)
 
-    async def test_health_check_runs_client(self, create_pool):
-        await create_pool(health_check_interval=self.interval)
-        health = await RedisDelegate().cache_health()
-
-        assert health == True
-
     async def test_health_check_in_pipeline(self, create_pool):
-        await create_pool(health_check_interval=self.interval)
-        c1 = await RedisDelegate().get_cache_client()
+        pool = await create_pool(health_check_interval=self.interval)
+        c1 = await pool.get_client()
 
         async with c1.pipeline(transaction=False) as pipe:
             pipe.connection = await pipe.connection_pool.get_connection("_")
@@ -277,8 +270,8 @@ class TestHealthCheck:
                 assert responses == [True, b"bar"]
 
     async def test_health_check_in_transaction(self, create_pool):
-        await create_pool(health_check_interval=self.interval)
-        c1 = await RedisDelegate().get_cache_client()
+        pool = await create_pool(health_check_interval=self.interval)
+        c1 = await pool.get_client()
 
         async with c1.pipeline(transaction=True) as pipe:
             pipe.connection = await pipe.connection_pool.get_connection("_")
@@ -305,8 +298,8 @@ class TestHealthCheck:
 
     async def test_health_check_in_pubsub_before_subscribe(self, create_pool):
         """A health check happens before the first [p]subscribe"""
-        await create_pool(health_check_interval=self.interval)
-        c1 = await RedisDelegate().get_cache_client()
+        pool = await create_pool(health_check_interval=self.interval)
+        c1 = await pool.get_client()
 
         p = c1.pubsub()
         p.connection = await p.connection_pool.get_connection("_")

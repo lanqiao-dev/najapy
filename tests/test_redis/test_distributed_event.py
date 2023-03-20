@@ -21,3 +21,23 @@ async def test_distributed_event(p2: BlockingRedisPool):
     e.add_listener(event_name, call_func)
 
     await e.dispatch(event_name, 0, 1)
+
+
+async def test_distributed_event_2(p2: BlockingRedisPool):
+    channel_name = "test_channel_2"
+    event_name = "test_event_2"
+
+    e = DistributedEvent(
+        p2, channel_name, 1
+    )
+
+    await Utils.sleep(0.5)
+
+    async def call_func(num1, num2):
+        Utils.log.info("test_distributed_event_2 call success.")
+        assert num1 + 1 == 1
+        assert num2 + 2 == 3
+
+    e.add_listener(event_name, call_func)
+    await Utils.sleep(2)
+    await e.dispatch(event_name, 0, 1)
