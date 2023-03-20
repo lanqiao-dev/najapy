@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "najapy"
-version = "1.2.3"
+version = "1.2.5"
 description = "najapy"
 authors = []
 
