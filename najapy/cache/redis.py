@@ -243,8 +243,9 @@ class CacheClient(Redis, AsyncContextManager):
     def get_safe_key(self, key):
         return self._pool.get_safe_key(key)
 
-    def allocate_lock(self, key, expire=60, *, sleep=0.1, blocking=True, blocking_timeout=None, thread_local=True):
+    def allocate_lock(self, key, expire=60, *, sleep=0.1, blocking=False, blocking_timeout=None, thread_local=True):
         """获取redis分布式锁
+        默认非阻塞
         """
         return self.lock(
             self.get_safe_key(key),
@@ -275,7 +276,7 @@ class ShareCache(AsyncContextManager):
     """共享缓存，使用with进行上下文管理
 
     基于分布式锁实现的一个缓存共享逻辑，保证在分布式环境下，同一时刻业务逻辑只执行一次，其运行结果会通过缓存被共享
-
+    该共享缓存中的分布式锁采用阻塞式，阻塞时间取决于业务逻辑执行时间，默认为60秒
     """
 
     def __init__(self, redis_client, share_key, lock_expire=60, lock_blocking_timeout=60):
@@ -290,8 +291,8 @@ class ShareCache(AsyncContextManager):
         self._share_key = redis_client.get_safe_key(share_key)
 
         self._lock = self._redis_client.allocate_lock(
-            redis_client.get_safe_key(f'share_cache:{share_key}'),
-            expire=lock_expire, blocking_timeout=lock_blocking_timeout
+            f'share_cache:{share_key}',
+            expire=lock_expire, blocking=True, blocking_timeout=lock_blocking_timeout
         )
 
         self.result = None

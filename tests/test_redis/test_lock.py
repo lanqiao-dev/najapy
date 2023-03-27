@@ -26,19 +26,18 @@ class TestLock:
         await lock.release()
 
     async def test_blocking(self, r):
-        blocking = False
-        lock = r.allocate_lock("foo", blocking=blocking)
+        lock = r.allocate_lock("foo")
         assert not lock.blocking
 
-        lock_2 = r.allocate_lock("foo")
+        lock_2 = r.allocate_lock("foo", blocking=True)
         assert lock_2.blocking
 
     async def test_blocking_timeout(self, r, event_loop):
         lock1 = r.allocate_lock("foo")
-        assert await lock1.acquire(blocking=False)
+        assert await lock1.acquire()
         bt = 0.2
         sleep = 0.05
-        lock2 = r.allocate_lock("foo", sleep=sleep, blocking_timeout=bt)
+        lock2 = r.allocate_lock("foo", sleep=sleep, blocking=True, blocking_timeout=bt)
         start = Utils.loop_time()
         assert not await lock2.acquire()
         # The elapsed duration should be less than the total blocking_timeout
@@ -46,7 +45,7 @@ class TestLock:
         await lock1.release()
 
     async def test_lock_with_multi_tasks(self, r):
-        lock1 = r.allocate_lock("foo")
+        lock1 = r.allocate_lock("foo", blocking=True)
 
         async def target_method():
             assert await lock1.acquire()
@@ -57,3 +56,15 @@ class TestLock:
         start = Utils.loop_time()
         await asyncio.gather(target_method(), target_method())
         assert Utils.loop_time() - start >= 1
+
+    async def test_blocking_false(self, r):
+        lock1 = r.allocate_lock("foo")
+
+        assert await lock1.acquire()
+
+        lock2 = r.allocate_lock("foo")
+        assert not await lock2.acquire()
+
+        await lock1.release()
+
+        assert await lock2.acquire()

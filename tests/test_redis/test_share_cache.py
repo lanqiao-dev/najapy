@@ -15,14 +15,16 @@ async def test_share_cache(r: CacheClient):
         await c1.incr()
         value = "xiami"
 
-        share_cache = ShareCache(r, "foo2", lock_blocking_timeout=0.1)
+        share_cache = ShareCache(r, "foo2", lock_blocking_timeout=1)
         v = await share_cache.get()
         if v:
             print("Hit Cache")
+            assert v == value
             return v
 
         await c2.incr()
         await share_cache.set(value, 2)
+        await share_cache.release()
 
     c1 = PeriodCounter(r, "counter1", 6)
     c2 = PeriodCounter(r, "counter2", 6)

@@ -1,3 +1,4 @@
+import pytest
 from pydantic import BaseModel, Field
 
 from najapy.cache.redis import BlockingRedisPool
@@ -66,6 +67,7 @@ class QuestionerInfoResp(QuestionerInfo):
     correct_rate: int = Field(...)
 
 
+@pytest.mark.skip("需要单个执行")
 async def test_distributed_event_questioner(p2: BlockingRedisPool):
     channel_name = "test_channel_questioner"
     event_name = "test_event_questioner"

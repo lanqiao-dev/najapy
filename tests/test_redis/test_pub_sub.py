@@ -87,7 +87,7 @@ async def test_pub_sub(r: CacheClient, pubsub, create_period_counter):
     await r.publish("channel:1", STOPWORD)
     await future
 
-    await Utils.sleep(6)
+    # await Utils.sleep(6)
 
     total = await c.incr()
     Utils.log.info(f"[test_pub_sub]: {total=}")
