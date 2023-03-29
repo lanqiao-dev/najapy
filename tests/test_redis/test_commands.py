@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 
 import pytest
@@ -45,6 +46,25 @@ class TestResponseCallbacks:
 
     async def test_case_insensitive_command_names(self, r: redis.Redis):
         assert r.response_callbacks["del"] == r.response_callbacks["DEL"]
+
+
+async def test_asynckills(r: CacheClient):
+    """redis-py v4.5.3 中修复的bug"""
+    await r.set("foo", "foo")
+    await r.set("bar", "bar")
+
+    t = asyncio.create_task(r.get("foo"))
+    await asyncio.sleep(1)
+    t.cancel()
+
+    try:
+        await t
+    except asyncio.CancelledError:
+        pytest.fail("connection left open with unread response")
+
+    assert await r.get("bar") == b"bar"
+    assert await r.ping()
+    assert await r.get("foo") == b"foo"
 
 
 class TestRedisCommands:
