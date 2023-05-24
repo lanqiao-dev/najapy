@@ -56,6 +56,7 @@ class RedisDelegate:
 
         async with await self.get_cache_client() as cache:
             result = bool(await cache.time())
+            Utils.log.info(f"Redis Pool Idle Current Connect Nums: {cache.pool.pool.qsize()}/{cache.pool.max_connections}")
 
         return result
 
@@ -208,7 +209,7 @@ class BlockingRedisPool(BlockingConnectionPool, _PoolMixin):
 
         Utils.log.info(
             f"Redis Pool [{config[r'host']}:{config[r'port']}] ({self._name}) initialized: "
-            f"{self._min_connections}/{self.max_connections}"
+            f"{self.pool.qsize()}/{self.max_connections}"
         )
 
         return self

@@ -23,6 +23,9 @@ class StackCache:
         return self._cache.get(key, default)
 
     def set(self, key, val):
+        if val is None:
+            return
+
         self._cache[key] = val
 
     def incr(self, key, val=1):
@@ -47,6 +50,19 @@ class StackCache:
 
     def clear(self):
         return self._cache.clear()
+
+    @property
+    def cache(self):
+        return self._cache
+
+    def __getitem__(self, key):
+        self.get(key)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __delitem__(self, key):
+        self.delete(key)
 
 
 class FuncCache:
