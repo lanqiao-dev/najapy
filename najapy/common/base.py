@@ -39,6 +39,7 @@ import jwt
 import pytz
 import loguru
 import ujson
+from art import tprint
 from cachetools import TTLCache, cached
 import msgpack
 
@@ -576,7 +577,7 @@ class _Utils(Singleton):
 
         res = []
         for i in range(0, len(msg), split_length):
-            res.append(cipher.decrypt(msg[i: i+split_length], 0))
+            res.append(cipher.decrypt(msg[i: i + split_length], 0))
 
         back_text = b"".join(res)
         return back_text.decode()
@@ -809,6 +810,41 @@ class _Utils(Singleton):
     @classmethod
     def msgpack_decode(cls, val, **kwargs):
         return msgpack.loads(val, **kwargs)
+
+    @staticmethod
+    def output_art(text="LQ-NAJAPY"):
+        fonts = ["varsity", "swampland", "sub-zero", "stforek", "soft", "chiseled", "standard", "block"]
+        font = random.choice(fonts)
+        tprint(text, font=font)
+
+    @staticmethod
+    def mask_id_number(id_number):
+        """
+        将身份证号进行脱敏处理，返回脱敏后的身份证号。
+        """
+        if len(id_number) == 15:
+            return id_number[:6] + '*' * 6 + id_number[-3:]
+        elif len(id_number) == 18:
+            return id_number[:6] + '*' * 8 + id_number[-4:]
+        else:
+            return id_number
+
+    @staticmethod
+    def validate_phone_simple_format(phone, no_area_code=False):
+        result = None
+
+        if not phone:
+            return result
+
+        match_res = re.match(r'^(\+86|86)?(1)\d{10}$', phone)
+        if not match_res:
+            return result
+
+        if no_area_code:
+            phone = re.sub(r'(\+86)|(86)', '', phone)
+
+        result = phone
+        return result
 
 
 @contextmanager

@@ -36,6 +36,8 @@ git clone https://github.com/lanqiao-dev/najapy.git
 │    │    │    ├── base                         基础工具集
 │    │    │    └── response                     响应工具集
 │    │    └── logging                           日志工具类
+│    ├── middleware                             中间件层
+│    │    └── rabbitmq                          RabbitMQ
 │    ├── net                                    网络层
 │    │    ├── cacert                            根证书
 └────└──  └── http                          	http工具集
