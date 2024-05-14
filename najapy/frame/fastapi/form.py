@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from typing import List, Any, Dict, Union
+from typing import List, Any
 
+from fastapi import UploadFile
 from najapy.common.async_base import Utils
 from pydantic.fields import ModelField
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 
 class _BaseForm:
@@ -20,12 +22,8 @@ class _BaseForm:
         if not v:
             return v
 
-        try:
-            v = ele_type(v)
-        except Exception as _:
+        if not isinstance(v, ele_type):
             raise ValueError(f'Invalid field value:{v} trans type {ele_type=}')
-
-        return v
 
     @classmethod
     def validate_list_value(cls, v, ele_type=str, sep=','):
@@ -68,19 +66,20 @@ class _BaseForm:
         return f"{self.__class__.__name__}({super().__repr__()})"
 
 
-class _BaseEnumForm(_BaseForm):
-    _TYPE = None
-
+class StrForm(str, _BaseForm):
     @classmethod
-    def validate(cls, v: Any, field: ModelField) -> Union[str, int]:
-        validate_v = cls.validate_value_type(v, cls._TYPE)
+    def validate(cls, v: Any, field: ModelField) -> Any:
+        if field.field_info.default and not v:
+            raise ValueError(f"value of {field.name} is missing.")
 
-        if scope := field.field_info.extra.get('status_in', []):
+        if v:
+            cls.validate_value_type(v, str)
 
-            if validate_v not in scope:
-                raise ValueError(f'Invalid field value:{v}')
+            v = v.strip()
+            if not v:
+                raise ValueError(f"value of {field.name} is missing.")
 
-        return validate_v
+        return v
 
 
 class _BaseListForm(_BaseForm):
@@ -90,48 +89,84 @@ class _BaseListForm(_BaseForm):
     @classmethod
     def validate(cls, v: str, field: ModelField) -> List:
 
-        validate_v = cls.validate_list_value(v, ele_type=cls._TYPE)
+        validate_res = cls.validate_list_value(v, ele_type=cls._TYPE)
 
         if scope := field.field_info.extra.get('status_in', []):
 
-            for _temp in validate_v:
+            for _temp in validate_res:
 
                 if _temp not in scope:
                     raise ValueError(f'Invalid list field value:{v}')
 
         if cls._LENGTH:
-            cls.validate_length_value(validate_v, length=cls._LENGTH)
+            cls.validate_length_value(validate_res, length=cls._LENGTH)
 
-        return validate_v
-
-
-class IntEnumForm(int, _BaseEnumForm):
-    _TYPE = int
-
-
-class StrEnumForm(str, _BaseEnumForm):
-    _TYPE = str
+        return validate_res
 
 
 class IntListForm(str, _BaseListForm):
     _TYPE = int
 
 
-class IntListLength2Form(IntListForm):
-    _LENGTH = 2
+class UploadExcelFile(UploadFile):
+    _TYPES = ["xlsx", "xls"]
 
-
-class StrListForm(str, _BaseForm):
-    _TYPE = str
-
-
-class StrListLength2Form(StrListForm):
-    _LENGTH = 2
-
-
-class JsonForm(str, _BaseForm):
     @classmethod
-    def validate(cls, v: str, field: ModelField) -> Dict:
-        validate_res = cls.validate_json_value(v)
+    def validate(cls, v: Any) -> Any:
+        if not isinstance(v, StarletteUploadFile):
+            raise ValueError(f"Expected UploadFile, received: {type(v)}")
+        try:
+            if v.filename.split(".")[-1] not in cls._TYPES:
+                raise ValueError("文件格式不正确")
+        except Exception:
+            raise ValueError("文件格式不正确")
 
-        return validate_res
+        return v
+
+
+class DateFormat(str, _BaseForm):
+    @classmethod
+    def validate(cls, v: Any, field: ModelField) -> Any:
+        try:
+            cls.validate_value_type(v, str)
+            Utils.time2stamp(v, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("时间格式不正确，请使用指定的格式（例如：YYYY-MM-DD）")
+
+        return v
+
+
+class DateTimeFormat(str, _BaseForm):
+    @classmethod
+    def validate(cls, v: Any, field: ModelField) -> Any:
+        try:
+            cls.validate_value_type(v, str)
+            Utils.time2stamp(v, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            raise ValueError("时间格式不正确，请使用指定的格式（例如：YYYY-MM-DD %H:%M:%S）")
+
+        return v
+
+
+class DataHourMinuteFormat(str, _BaseForm):
+    @classmethod
+    def validate(cls, v: Any, field: ModelField) -> Any:
+        try:
+            cls.validate_value_type(v, str)
+            Utils.time2stamp(v, "%H:%M")
+        except ValueError:
+            raise ValueError("时间格式不正确，请使用指定的格式（例如：%H:%M）")
+
+        return v
+
+
+class DateYearMonthFormat(str, _BaseForm):
+    @classmethod
+    def validate(cls, v: Any, field: ModelField) -> Any:
+        try:
+            cls.validate_value_type(v, str)
+            Utils.time2stamp(v, "%Y-%m")
+        except ValueError:
+            raise ValueError("时间格式不正确，请使用指定的格式（例如：YYYY-MM）")
+
+        return v
